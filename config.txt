@@ -1,0 +1,2 @@
+waveType = sine
+frequency =  50
