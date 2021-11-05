@@ -1,2 +1,2 @@
-waveType = sine
-frequency =  50
+waveType=sawtooth 
+frequency=50
