@@ -23,3 +23,10 @@ QNX:
 cc wave_generator.c -o wg -lm
 ./wg
 ```
+# Usage
+`-w sine|square|sawtooth|triangular -f [float] -a [float]`<br><br>
+Functions:<br>
+-w Specific Type of Wave to be output.<br>
+-f Specify the Frequency of the wave in Hertz (Hz).<br>
+-a Specify the Amplitude of the wave.<br>
+-? Show this message
