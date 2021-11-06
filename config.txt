@@ -1,0 +1,2 @@
+waveType=sawtooth 
+frequency=50
