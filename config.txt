@@ -1,2 +1,3 @@
-waveType=sawtooth 
-frequency=50
+waveType= sawtoothf
+frequency=504
+amplitude=samjah
