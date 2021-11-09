@@ -52,30 +52,30 @@ int badr[5];															// PCI 2.2 assigns 6 IO base addresses
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-float sineWave(int i, int n){
+int sineWave(int i, int n, float a){
     float delta=(2.0*3.142)/n;
-    return(((sinf((float)(i*delta))) + 1.0) * 0x8000);
+    return((int) (((sinf((float)(i*delta))) + 1.0) * 0.5 * a * 0x8000));
 }
 
-float squareWave(int i, int n){
+int squareWave(int i, int n, float a){
     if(i<=(n/2)){
-        return(2.0 * 0x8000);
+        return((int)(1.0 * a * 0x8000));
     }
     else{
-        return(1.0 * 0x8000);
+        return((int)(0.0 * a * 0x8000));
     }
 }
 
-float sawtoothWave(int i, int n){
-    return(((i/n) + 1.0) * 0x8000);
+int sawtoothWave(int i, int n, float a){
+    return((((float) i / (float) n) * a * 0.5 * ((float) 0x8000)));
 }
 
-float triangularWave(int i, int n){
+int triangularWave(int i, int n, float a){
     if(i<=(n/2)){
-        return((i/(n/2)) + 1.0 * 0x8000);
+        return((int)(((((float)i*2.0*((float)0x8000))/((float)n)))*((float) a)));
     }
     else{
-        return(((i-(n/2)/(n/2)) + 1.0) * 0x8000);
+        return((int)((((float) 0x8000)-((((float) 0x8000)*((2.0*((float) i))-((float) n)))/((float) n)))*((float) a)));
     } 
 }
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
     void *hdl;
     unsigned int i,count, n=50, waveType=0;
     unsigned short chan;
-    unsigned int data[100];
+    unsigned int data[100000];
     float delta,dummy,a=1.0;
     char **p_to_arg=&argv[1];
     #if defined(__QNX__)
@@ -91,10 +91,10 @@ int main(int argc, char *argv[]) {
         uintptr_t iobase[6];
         uintptr_t dio_in;
         uint16_t adc_in;
-        info.VendorId=0x1307;
-        info.DeviceId=0x01;
         memset(&info,0,sizeof(info));
         if(pci_attach(0)<0) {perror("pci_attach");exit(EXIT_FAILURE);}
+        info.VendorId=0x1307;
+        info.DeviceId=0x01;
         if ((hdl=pci_attach_device(0, PCI_SHARE|PCI_INIT_ALL, 0, &info))==0) {perror("pci_attach_device");exit(EXIT_FAILURE);}		
         for(i=0;i<5;i++) {badr[i]=PCI_IO_ADDR(info.CpuBaseAddress[i]);iobase[i]=mmap_device_io(0x0f,badr[i]);	}	
         if(ThreadCtl(_NTO_TCTL_IO,0)==-1) {perror("Thread Control");exit(1);}			
@@ -117,7 +117,7 @@ while(--argc && (*p_to_arg)[0]=='-'){
                 "Functions:\n\n"
                 "-w Specific Type of Wave to be output.\n"
                 "-f Specify the Frequency of the wave in Hertz (Hz).\n"
-                "-a Specify the Amplitude of the wave.\n"
+                "-a Specify the Amplitude of the wave in millivolt (mV).\n"
                 "-? Show this message\n\n");
 			exit(0);
 
@@ -132,7 +132,6 @@ while(--argc && (*p_to_arg)[0]=='-'){
 				else if(strcasecmp(*p_to_arg, "TRIANGULAR")==0){waveType=3;}
 				else{printf("Invalid Wave Type\n");exit(1);}
 				p_to_arg++;
-				
 				continue; 
 			}
 		case 'f':
@@ -140,17 +139,18 @@ while(--argc && (*p_to_arg)[0]=='-'){
 			else{
 				p_to_arg++;argc--;
 				if((*p_to_arg)[0] == '-'){printf("Invalid Frequency\n");exit(1); }
-				n = (int)(50*(1/atof(*p_to_arg))/0.0005375);
+				n = (int) ((50/atof(*(p_to_arg)))/0.00057);
                 if(n<=0){printf("Invalid Frequency\n");exit(1);}
-				p_to_arg++;
+                p_to_arg++;
 				continue; 
+				
 			}
 		case 'a':
 			if(argc-1<=0){printf("Invalid Amplitude\n");exit(1);}
 			else{
 				p_to_arg++;argc--;
 				if((*p_to_arg)[0] == '-'){printf("Invalid Amplitude\n");exit(1); }
-				a = atof(*p_to_arg);
+				a = (atof(*p_to_arg)*2/25);
                 if(a<=0){printf("Invalid Amplitude\n");exit(1);}
 				p_to_arg++;
 				continue; 
@@ -163,30 +163,36 @@ while(--argc && (*p_to_arg)[0]=='-'){
 // Pregenerating wave
 //**********************************************************************************************
 
+	
     if(waveType == 0){
         for(i=0;i<n;i++) {
-            dummy = sineWave(i, n);
+            dummy = sineWave(i, n, a);
             data[i]= (unsigned) dummy;
         }
     }
     else if(waveType==1){
         for(i=0;i<n;i++) {
-            dummy = squareWave(i, n);
+            dummy = squareWave(i, n, a);
             data[i]= (unsigned) dummy;
         }
     }
     else if(waveType==2){
         for(i=0;i<n;i++) {
-            dummy = sawtoothWave(i, n);
+            dummy = sawtoothWave(i, n, a);
             data[i]= (unsigned) dummy;
         }
     }
     else{
         for(i=0;i<n;i++) {
-            dummy = triangularWave(i, n);
+            dummy = triangularWave(i, n, a);
             data[i]= (unsigned) dummy;
         }
     }
+   	//for(i=0; i<n;i++){
+		//printf("data %d: %d\n",i,data[i]);
+	//}
+    printf("Wave Type     : %d\nWave Period   : %d\nWave Amplitude: %f\n", waveType, n, a);
+    
     #if defined(__QNX__)
 //*********************************************************************************************
 // Output wave
@@ -215,9 +221,7 @@ while(--argc && (*p_to_arg)[0]=='-'){
         pci_detach_device(hdl);
 
 //**********************************************************************************************
-    #else
-        printf("Wave Type     : %d\nWave Period   : %d\nWave Amplitude: %f\n", waveType, n, a);
     #endif
-
+    
     exit(0);
 }
