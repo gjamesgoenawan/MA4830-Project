@@ -30,6 +30,6 @@ int main()
         fprintf(config,"%s=%s\n",labels[i],params[i]);
     }
 
-    fclose(config);
+    fclose(config); //close the handle
 return 0;
 }
