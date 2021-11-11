@@ -13,7 +13,6 @@ char* getconfig(char* file,char* config){ //function to the value of a specific 
     line = strstr(file,config); //go to the line containing the required config
     line = strstr(line,"="); // store only the string after =
     line = strtok(line,"\n"); //split the string when a break line is found
-    free(file); //free the buffer
     return(&line[1]); //return only the value
 }
 
@@ -64,6 +63,6 @@ paramsptr->amplitude = atoi(getconfig(buffer3,"amplitude"));// then store in a s
 
 printf("%s %d %d\n",paramsptr->waveType,paramsptr->frequency,paramsptr->amplitude);
 
-
+free(buffer); //free the buffer
 return 0;
 }

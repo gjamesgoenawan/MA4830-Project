@@ -1,9 +1,10 @@
 #include <stdio.h>
-#include <ncurses.h>
+#include <stdlib.h>
 
 int main()
 {
 int amplitude = 50, frequency = 20;
+int ch;
 
 while(1){
     //when an arrow is pressed, getch returns 2 values 0 and unique arrow key value
