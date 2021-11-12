@@ -43,7 +43,7 @@ void readpot(){
     unsigned short chan;
     int potentioval;
 
-    count = 0x01;
+    count = 0x00;
     chan = ((count & 0x0f)<<4) | (0x0f & count);
     out16(MUXCHAN,0x0D00|chan);
     delay(1);
@@ -194,6 +194,10 @@ printf("PCI board initialized!\n\n");
 //   fflush( stdout );
 //   delay(100);									
 //   }
+
+while(1){
+  readswitch();
+}
 
 printf("\nDemo End\n");
 				// End of program - orderly shutdown
