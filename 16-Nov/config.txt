@@ -1,0 +1,3 @@
+waveType=3
+frequency=3.000000
+amplitude=1.170000

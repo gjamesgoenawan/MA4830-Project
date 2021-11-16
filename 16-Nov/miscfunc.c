@@ -1,12 +1,20 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include "main.h"
 
-typedef struct {
-    unsigned int waveType;
-    float amplitude;
-    float frequency; 
-} params;
+
+// check for correct user input
+int checkUserInput(char* parameter, int type) {
+    // type 0 = frequency;
+    // type 2 = amplitude
+    if(atof(parameter)<=0.0 || (type == 0 && atof(parameter)>= 50.0) || (type == 1 && atof(parameter)>= 20.0)){
+        return 0;
+    }
+    else{
+        return 1;
+    }
+}
 
 char* getconfig(char* file,char* config){ //function to the value of a specific parameter e.g. frequency from the parsed config file
     char *line;
@@ -16,7 +24,7 @@ char* getconfig(char* file,char* config){ //function to the value of a specific 
     return(&line[1]); //return only the value
 }
 
-void read_config(char *fileName, params *paramptr){
+void read_config(char *fileName, input *paramptr){
 /* Function to read settings value from config file and store it into a struct
 Input : Config file name and path(if necessary), Structure to hold the parameters
 Return : Parsed config value will be stored in the struct*/
@@ -55,33 +63,19 @@ Return : Parsed config value will be stored in the struct*/
     strcpy(buffer3,buffer);
     
     paramptr->waveType = atoi(getconfig(buffer,"waveType"));//store the waveType in a struct
-    paramptr->frequency = atof(getconfig(buffer2,"frequency"));//convert frequency and amplitude to float
-    paramptr->amplitude = atof(getconfig(buffer3,"amplitude"));// then store in a struct
+    paramptr->freq = atof(getconfig(buffer2,"frequency"));//convert frequency and amplitude to float
+    paramptr->amp = atof(getconfig(buffer3,"amplitude"));// then store in a struct
 
 }
 
-void save_config(char* fileName,params *paramsptr){
+void save_config(char* fileName,input *paramsptr){
     /* Function to save inputted parameters into a config file
    Input : Config file name and path(if necessary), Structure to hold the parameters*/ 
     FILE *config = fopen(fileName,"w+"); //open file and assign it to a handle
     fseek(config,0,SEEK_SET);//set the cursor to the start of the file
     /*write the updated parameters to the config file*/
     fprintf(config,"waveType=%d\n",paramsptr->waveType);
-    fprintf(config,"frequency=%f\n",paramsptr->frequency);
-    fprintf(config,"amplitude=%f\n",paramsptr->amplitude);
+    fprintf(config,"frequency=%.2f\n",paramsptr->freq);
+    fprintf(config,"amplitude=%.2f\n",paramsptr->amp);
     fclose(config);
-}
-
-
-
-int main()
-{
-params param;
-// read_config("config.txt",&param);
-// printf("%d %f %f\n",param.waveType,param.frequency,param.amplitude);
-param.waveType=2;
-param.frequency=4;
-param.amplitude=3;
-save_config("config.txt",&param);
-return 0;
 }
