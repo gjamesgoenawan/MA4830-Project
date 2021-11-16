@@ -43,11 +43,45 @@
 
 int badr[5];	
 
+void *freqthread(void *arg){
+    int ch;
+    //Initial input
+    inputs.generateWave = 0;
+    inputs.currentInput = 1;
+    
+    while(1){
+        ch = getchar();
+        pthread_mutex_lock(&mutex); // Take Mutex to update user inputs
+        if(ch == 115 || ch == 119){ //When W or S key is pressed
+            if(inputs.currentInput == 1){ //Select either 'Generate Wave' or adjust frequency
+                inputs.currentInput = 3;
+            }
+            else{
+                inputs.currentInput = 1;
+            }
+        }
+        else if(ch == 100 || ch == 97){  //When cursor is at frequency, read A or D key to adjust frequency
+            if (inputs.currentInput==1){
+                if(ch == 100 && inputs.freq<MAXIMUM_FREQUENCY){
+                    inputs.freq += 1;
+                } 
+
+                else if(inputs.freq>MINIMUM_FREQUENCY){
+                    inputs.freq -= 1;
+                }
+            }
+        }
+        else if(ch==13 && inputs.currentInput == 3){ //Enter key to generate wave if the cursor is at generate wave button
+            inputs.currentInput = 1;    
+            inputs.generateWave = 1;
+        }
+        pthread_mutex_unlock(&mutex);
+    }
+}
 
 void *daqthread(void *arg){
 	void *hdl;
 	unsigned int i;
-	int ch;
 
 // Initialise Board
 #if defined(__QNX__)
@@ -79,42 +113,14 @@ void *daqthread(void *arg){
         out16(AD_FIFOCLR,0); 						// clear ADC buffer
         out16(MUXCHAN,0x0D00);          // previous group select 0x0C10
 #endif    
-    //Initial input
-    inputs.generateWave = 0;
-    inputs.currentInput = 1;
-    
     while(1){
-        // Take Mutex to update user inputs
-        pthread_mutex_lock(&mutex);
-        ch = getchar();
-        if(ch == 115 || ch == 119){ //When W or S key is pressed
-            if(inputs.currentInput == 1){ //Select either 'Generate Wave' or adjust frequency
-                inputs.currentInput = 3;
-            }
-            else{
-                inputs.currentInput = 1;
-            }
-        }
-        else if(ch == 100 || ch == 97){  //When cursor is at frequency, read A or D key to adjust frequency
-            if (inputs.currentInput==1){
-                if(ch == 100 && inputs.freq<200){
-                    inputs.freq += 1;
-                } 
-
-                else if(inputs.freq>3){
-                    inputs.freq -= 1;
-                }
-            }
-        }
-        else if(ch==13 && inputs.currentInput == 3){ //Enter key to generate wave if the cursor is at generate wave button
-            inputs.currentInput = 1;    
-            inputs.generateWave = 1;
-        }
+        pthread_mutex_lock(&mutex); // Take Mutex to update user inputs
         readswitch(&inputs); //Read toggle switch value to get waveType
         readpot(&inputs); //Read potentiometer value to get amplitude
         pthread_mutex_unlock(&mutex);
-    } 	
+    }
 }
+
 /* Function to capture input from Keyboard 
 W = UP
 S = DOWN
