@@ -95,22 +95,6 @@ printf("PCI board initialized!\n");
                                                 INTIALIZATION ENDS HERE
 
 */
-/*while(1){
-int switchval;
-
-switchval = in8(DIO_PORTA);
-printf("reading = %d\n",switchval);} */
-
-
-// while(1){
-// count = 0x00;
-// chan = ((count & 0x0f)<<4) | (0x0f & count);
-// out16(MUXCHAN,0x0D00|chan);
-// delay(1);
-// out16(AD_DATA,0);
-// while(!(in16(MUXCHAN)&0x4000));
-// potentioval = in16(AD_DATA); //read potentiometer value
-// printf("potentiometer value =%i\n",potentioval);}
 
 
 printf("\nDemo End\n");
@@ -139,7 +123,7 @@ int potentioval;
 
 count = 0x00; // Use ADC0
 chan = ((count & 0x0f)<<4) | (0x0f & count);
-out16(MUX,0x0D00|chan);
+out16(MUXCHAN,0x0D00|chan);
 delay(1);
 out16(AD_DATA,0);
 while(!(in16(MUXCHAN)&0x4000));
