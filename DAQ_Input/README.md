@@ -8,3 +8,7 @@ make compile    --> compile main.c
 make run        --> run executable
 
 make clean      --> remove executable
+
+make load
+
+make daq

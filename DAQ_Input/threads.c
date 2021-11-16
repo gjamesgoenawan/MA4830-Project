@@ -149,19 +149,19 @@ void *keyboardthread(void *arg){
                 inputs.waveType = ((inputs.waveType - 1) % 4) + 1;
             }
             else if (inputs.currentInput==1){ //When cursor is at waveType, read A or D key to adjust frequency
-                if(ch == 100 && inputs.freq<200){
+                if(ch == 100 && inputs.freq<MAXIMUM_FREQUENCY){
                     inputs.freq += 1;
                 } 
 
-                else if(inputs.freq>3){
+                else if(inputs.freq>MINIMUM_FREQUEnCY){
                     inputs.freq -= 1;
                 }
             }
             else if (inputs.currentInput==2){//When cursor is at waveType, read A or D key to adjust amplitude
-                if(ch == 100 && inputs.amp<50.0){
+                if(ch == 100 && inputs.amp<MAXIMUM_AMPLITUDE){
                     inputs.amp += 0.01;
                 }
-                else if(inputs.amp>0.01){
+                else if(inputs.amp>MINIMUM_AMPLITUDE){
                     inputs.amp -= 0.01;
                 }
             }
@@ -278,13 +278,17 @@ void *outputthread(void *arg) {
         if (inputs.currentInput == 1){attron(A_STANDOUT);}
         move(1,12);
         clrtoeol();
+        attron(COLOR_PAIR(3));
         mvprintw(1, 2, "FREQUENCY :  %.2lf Hz", inputs.freq);
+        attroff(COLOR_PAIR(3));
         attroff(A_STANDOUT);
         // printing of amplitude
         if (inputs.currentInput == 2){attron(A_STANDOUT);}
         move(2,12);
         clrtoeol();
+        attron(COLOR_PAIR(4));
         mvprintw(2, 2, "AMPLITUDE :  %.2lf V", inputs.amp);
+        attroff(COLOR_PAIR(4));
         attroff(A_STANDOUT);
 
         // printing button and highlight when selected
@@ -292,7 +296,9 @@ void *outputthread(void *arg) {
         if (inputs.generateWave == 0){
             move(4,12);
             clrtoeol();
+            attron(COLOR_PAIR(2));
             mvprintw(4, 2, "Generate Wave");
+            attroff(COLOR_PAIR(2));
             //mvprintw(5,0,"%d, %d\n",n, cnt);
         }
         //Calibrate the input values into appropiate amplitude and frequency to generate an accurate wave
@@ -330,7 +336,7 @@ void *outputthread(void *arg) {
             inputs.generateWave = 0;           
         }
         attroff(A_STANDOUT);
-
+        attron(COLOR_PAIR(1));
         if(inputs.currentInput == 4){attron(A_STANDOUT);} //Save and Exit Button and highlight when selected
         mvprintw(6, 2, "Save & Exit");
         attroff(A_STANDOUT);
@@ -396,5 +402,5 @@ Input : A struct to store the amplitude*/
         while(!(in16(MUXCHAN)&0x4000));
         potentioval = in16(AD_DATA); //read potentiometer value
     #endif
-    paramsptr->amp=potentioval*2.5/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
+    paramsptr->amp=potentioval*MAXIMUM_AMPLITUDE/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
 }
