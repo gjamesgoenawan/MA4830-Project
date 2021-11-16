@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 typedef struct {
-    char waveType[20];
+    unsigned int waveType;
     float amplitude;
     float frequency; 
 } params;
@@ -51,11 +51,10 @@ Return : Parsed config value will be stored in the struct*/
         buffer = NULL;
     }
     fclose(config); //close the config
-
     strcpy(buffer2,buffer); //copy buffer to avoid segmentation error while executing the functions
     strcpy(buffer3,buffer);
-
-    strcpy(paramptr->waveType,getconfig(buffer,"waveType"));//store the waveType in a struct
+    
+    paramptr->waveType = atoi(getconfig(buffer,"waveType"));//store the waveType in a struct
     paramptr->frequency = atof(getconfig(buffer2,"frequency"));//convert frequency and amplitude to float
     paramptr->amplitude = atof(getconfig(buffer3,"amplitude"));// then store in a struct
 
@@ -67,7 +66,7 @@ void save_config(char* fileName,params *paramsptr){
     FILE *config = fopen(fileName,"w+"); //open file and assign it to a handle
     fseek(config,0,SEEK_SET);//set the cursor to the start of the file
     /*write the updated parameters to the config file*/
-    fprintf(config,"waveType=%s\n",paramsptr->waveType);
+    fprintf(config,"waveType=%d\n",paramsptr->waveType);
     fprintf(config,"frequency=%f\n",paramsptr->frequency);
     fprintf(config,"amplitude=%f\n",paramsptr->amplitude);
     fclose(config);
@@ -79,8 +78,8 @@ int main()
 {
 params param;
 read_config("config.txt",&param);
-printf("%s %f %f\n",param.waveType,param.frequency,param.amplitude);
-strcpy(param.waveType,"yay");
+printf("%d %f %f\n",param.waveType,param.frequency,param.amplitude);
+param.waveType=2;
 param.frequency=4;
 param.amplitude=3;
 save_config("config.txt",&param);
