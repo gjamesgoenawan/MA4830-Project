@@ -28,21 +28,26 @@
 
 #define	DEBUG		1
 
+// Variable to store the keyboard arrow input and current beats per minute
 typedef struct {
-    char waveType[20];
-    float amplitude;
-    float frequency; 
-} params;
+	unsigned int waveType;
+	float freq;
+	float amp;
+	int currentInput;
+	int generateWave;
+}input;
+
+// input init
+input inputs;
 
 int badr[5];		// PCI 2.2 assigns 6 IO base addresses
 uintptr_t iobase[6]; 
 
-void readswitch();
-void readpot();
+void readswitch(input *paramsptr);
+void readpot(input *paramsptr);
 
 int main() {
 
-params param;
 
 struct pci_dev_info info;
 void *hdl;
@@ -98,7 +103,11 @@ printf("PCI board initialized!\n");
                                                 INTIALIZATION ENDS HERE
 
 */
-
+while(1){
+  readpot(&inputs);
+  readswitch(&inputs);
+  printf("Amplitude : %.2f WaveType : %d\n",inputs.amp,inputs.waveType);
+}
 
 printf("\nDemo End\n");
 				// End of program - orderly shutdown
@@ -107,46 +116,46 @@ pci_detach_device(hdl);
 return(0);
 }  
 
-void readswitch(params *paramsptr){
-int switchval;
+void readswitch(input *paramsptr){
+  int switchval;
 
-switchval = in8(DIO_PORTA); //read the toggle switch state
-// printf("reading = %d\n",switchval);
-switch (switchval) //convert the value into corresponding waveType and store in a struct
-{
-case 240:
-  paramsptr->waveType=NULL;
-  break;
-case 241:
-  paramsptr->waveType="sine";
-  break;
-case 242:
-  paramsptr->waveType="square";
-  break;
-case 244:
-  paramsptr->waveType="sawtooth";
-  break;
-case 248:
-  paramsptr->waveType="triangular"
-default:
-  break;
+  switchval = in8(DIO_PORTA); //read the toggle switch state
+  // printf("reading = %d\n",switchval);
+  switch (switchval) //convert the value into corresponding waveType and store in a struct
+  {
+  case 240:
+    paramsptr->waveType=NULL;
+    break;
+  case 241:
+    paramsptr->waveType=1;
+    break;
+  case 242:
+    paramsptr->waveType=2;
+    break;
+  case 244:
+    paramsptr->waveType=3;
+    break;
+  case 248:
+    paramsptr->waveType=4;
+  default:
+    break;
 }
 
 }
 
-void readpot(params *paramsptr ){
-unsigned int count;
-uint16_t adc_in;
-unsigned short chan;
-int potentioval;
+void readpot(input *paramsptr ){
+  unsigned int count;
+  uint16_t adc_in;
+  unsigned short chan;
+  int potentioval;
 
-count = 0x00; // Use ADC0
-chan = ((count & 0x0f)<<4) | (0x0f & count);
-out16(MUXCHAN,0x0D00|chan);
-delay(1);
-out16(AD_DATA,0);
-while(!(in16(MUXCHAN)&0x4000));
-potentioval = in16(AD_DATA); //read potentiometer value
-// printf("potentiometer value =%i\n",potentioval);
-paramsptr->amplitude=atof(potentioval)*2.3/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
+  count = 0x00; // Use ADC0
+  chan = ((count & 0x0f)<<4) | (0x0f & count);
+  out16(MUXCHAN,0x0D00|chan);
+  delay(1);
+  out16(AD_DATA,0);
+  while(!(in16(MUXCHAN)&0x4000));
+  potentioval = in16(AD_DATA); //read potentiometer value
+  // printf("potentiometer value =%i\n",potentioval);
+  paramsptr->amp=potentioval*2.5/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
 }

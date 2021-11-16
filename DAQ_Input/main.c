@@ -1,4 +1,4 @@
-// qnx DAQ Registers
+// QNX DAS Registers
 #if defined(__QNX__)
     #include <hw/pci.h>
     #include <hw/inout.h>
@@ -56,6 +56,10 @@ int freq_check = 0, amp_check = 0, specifier_given = 0;
 
 int main(int argc, char *argv[]) {
     int configLoaded = 0;
+    int daqEnable = 0;
+//**********************************************************************************************
+// Setting up PCI-DAS1602/16 Board
+//**********************************************************************************************    
     void *hdl;
     unsigned int i;
     char **p_to_arg=&argv[1];
@@ -89,19 +93,20 @@ int main(int argc, char *argv[]) {
         out16(AD_FIFOCLR,0); 						// clear ADC buffer
         out16(MUXCHAN,0x0D00);          // previous group select 0x0C10
     #endif
-    	
-    inputs.amp = DEFAULT_AMPLITUDE; 
+
+    //Initializing default settings	
+    inputs.amp = DEFAULT_AMPLITUDE;  
     inputs.freq = DEFAULT_FREQUENCY;																							
    		
 //**********************************************************************************************
-// Parsing Arguments
+// Parsing Comand Line Arguments
 //**********************************************************************************************
 
     while(--argc && (*p_to_arg)[0]=='-'){
         if((*p_to_arg)[1]=='\0'){printf("invalid option1\n");exit(1);
             }
         switch((*p_to_arg)[1]){
-            case '?':
+            case '?': //Print help messages
                 printf( 
                     "\n\nMA4830 CA 2: Multi Wave Generator\n"
                     "Author: Andhika Satriya Bhayangkara, Chan Yee Hang Caleb, Gabriel James Goenawan, Yap Choon Kai Jonathan \n"
@@ -111,9 +116,11 @@ int main(int argc, char *argv[]) {
                     "-w Specific Type of Wave to be output.\n"
                     "-f Specify the Frequency of the wave in Hertz (Hz).\n"
                     "-a Specify the Amplitude of the wave in millivolt (mV).\n"
+                    "-l Load previously saved parameters from config.tx\n"
+                    "-d Enable input from potentiometer and toggle switches\n"
                     "-? Show this message\n\n");
                 exit(0);
-            case 'w':
+            case 'w': //Read wave type and store in a struct
                 if(argc-1<=0){printf("Invalid Wave Type\n");exit(1);}
                 else{
                     p_to_arg++;argc--;
@@ -126,7 +133,7 @@ int main(int argc, char *argv[]) {
                     p_to_arg++;
                     continue; 
                 }
-            case 'f':
+            case 'f': //Read frequency and store in a struct
                 if(argc-1<=0){printf("Invalid Frequency\n");exit(1);}
                 else{
                     p_to_arg++;argc--;
@@ -137,7 +144,7 @@ int main(int argc, char *argv[]) {
                     p_to_arg++;
                     continue;  
                 }
-            case 'a':
+            case 'a': //Read amplitude and store in a struct
                 if(argc-1<=0){printf("Invalid Amplitude\n");exit(1);}
                 else{
                     p_to_arg++;argc--;
@@ -148,27 +155,45 @@ int main(int argc, char *argv[]) {
                     p_to_arg++;
                     continue; 
                 }
-            case 'l':
+            case 'l': //Load previously saved config files
                 read_config("config.txt", &inputs);
                 configLoaded = 1;
-                break;
-                
+                continue;
+            case 'd': //Enable input from DAS Board
+                daqEnable = 1;
+                continue;
             default:printf("'%s' Invalid option. Use '-?' for help.\n", (*p_to_arg));exit(1); 
             }
         if (configLoaded == 1) break;
         p_to_arg++;
     }
-    if (specifier_given == 1) {
+    //
+    if (specifier_given == 1) { //Print the parameters if specified in the arguments
         printf("Wave Type     : %d\nWave Frequency   : %f\nWave Amplitude: %f\n", inputs.waveType, inputs.freq, inputs.amp);
     }
-    if (specifier_given == 0) {
+    //Print the welcome message for default mode (keyboard input)
+    if (specifier_given == 0 && daqEnable==0) {
         printf( 
-        "\nMA4830 CA 2: Multi Wave Generator\n"
+        "\nMA4830 CA 2: Multi Wave Generator : Keyboard Input MODE\n"
         "Author: Andhika Satriya Bhayangkara, Chan Yee Hang Caleb, Gabriel James Goenawan, Yap Choon Kai Jonathan \n");
         printf(
         "\n\nW,A,S,D to move / change value\n"
         "Enter to select the current option\n\n\n");
 
+    //Print the welcome message for DAQ Board input mode
+    if (daqEnable==1){
+        printf( 
+        "\nMA4830 CA 2: Multi Wave Generator : DAQ Board Input MODE\n"
+        "Author: Andhika Satriya Bhayangkara, Chan Yee Hang Caleb, Gabriel James Goenawan, Yap Choon Kai Jonathan \n");
+        printf(
+        "\n\nW,A,S,D to move / change frequency value\n"
+        "Turn the potentiometer (AD 0) to change the amplitude\n"
+        "Toggle the switches to change the wave type\n"
+        "Triangular Wave\t Sawtooth Wave\t Square Wave\t Sine Wave\n\n"
+        "Enter to select the current option\n\n\n");
+    }
+
+    //Initialize program start countdown
         for (i = start_program; i > 0; i--) {
             if (i == start_program) {
                 printf("Program will start in \n");
@@ -178,9 +203,14 @@ int main(int argc, char *argv[]) {
             sleep(1);
         }
     }
-
-    pthread_create(&t_id[0], NULL, &daqthread, NULL);
-    pthread_create(&t_id[1], NULL, &outputthread, NULL);
+    
+    //Thread creation
+    if (daqEnable==1){ //Create DAQ Input Thread or Keyboard Input Thread depending on the input
+         pthread_create(&t_id[0], NULL, &daqthread, NULL);}
+    else {
+        pthread_create(&t_id[0], NULL, &keyboardthread, NULL); 
+    }
+    pthread_create(&t_id[1], NULL, &outputthread, NULL); //Create output thread containing wave generator and graphical output (ncurses)
 
     pthread_exit(NULL);
 

@@ -42,7 +42,6 @@
 #endif
 
 int badr[5];	
-/* Function to capture input from Keyboard */
 
 
 void *daqthread(void *arg){
@@ -50,7 +49,7 @@ void *daqthread(void *arg){
 	unsigned int i;
 	int ch;
 
-
+// Initialise Board
 #if defined(__QNX__)
 		struct pci_dev_info info;
         memset(&info,0,sizeof(info));
@@ -73,7 +72,6 @@ void *daqthread(void *arg){
             perror("Thread Control");
             exit(1);}			
         
-        // Initialise Board
         out16(INTERRUPT,0x60c0);				    // sets interrupts	 - Clears
         out16(TRIGGER,0x2081);					// sets trigger control: 10MHz, clear, Burst off,SW trig. default:20a0
         out16(AUTOCAL,0x007f);					// sets automatic calibration : default
@@ -81,7 +79,7 @@ void *daqthread(void *arg){
         out16(AD_FIFOCLR,0); 						// clear ADC buffer
         out16(MUXCHAN,0x0D00);          // previous group select 0x0C10
 #endif    
-
+    //Initial input
     inputs.generateWave = 0;
     inputs.currentInput = 1;
     
@@ -89,15 +87,15 @@ void *daqthread(void *arg){
         // Take Mutex to update user inputs
         pthread_mutex_lock(&mutex);
         ch = getchar();
-        if(ch == 115 || ch == 119){
-            if(inputs.currentInput == 1){
+        if(ch == 115 || ch == 119){ //When W or S key is pressed
+            if(inputs.currentInput == 1){ //Select either 'Generate Wave' or adjust frequency
                 inputs.currentInput = 3;
             }
             else{
                 inputs.currentInput = 1;
             }
         }
-        else if(ch == 100 || ch == 97){
+        else if(ch == 100 || ch == 97){  //When cursor is at frequency, read A or D key to adjust frequency
             if (inputs.currentInput==1){
                 if(ch == 100 && inputs.freq<200){
                     inputs.freq += 1;
@@ -108,16 +106,20 @@ void *daqthread(void *arg){
                 }
             }
         }
-        else if(ch==13 && inputs.currentInput == 3){
+        else if(ch==13 && inputs.currentInput == 3){ //Enter key to generate wave if the cursor is at generate wave button
             inputs.currentInput = 1;    
             inputs.generateWave = 1;
         }
-        readswitch(&inputs);
-        readpot(&inputs);
+        readswitch(&inputs); //Read toggle switch value to get waveType
+        readpot(&inputs); //Read potentiometer value to get amplitude
         pthread_mutex_unlock(&mutex);
     } 	
 }
-
+/* Function to capture input from Keyboard 
+W = UP
+S = DOWN
+A = DECREASE
+D = INCREASE */
 void *keyboardthread(void *arg){
 	int ch;
     inputs.generateWave = 0;
@@ -125,10 +127,10 @@ void *keyboardthread(void *arg){
         // Take Mutex to update user inputs
         pthread_mutex_lock(&mutex);
         ch = getchar();
-        if(ch == 115){      
+        if(ch == 115){ //Move cursor up when W key is pressed      
             inputs.currentInput = (inputs.currentInput + 1) % 5;
         }
-        else if(ch == 119){    
+        else if(ch == 119){ //Move cursor down when S key is pressed
             if (inputs.currentInput == 0){
             	inputs.currentInput = 4;
             }
@@ -136,7 +138,7 @@ void *keyboardthread(void *arg){
             	inputs.currentInput--;
             } 
         }
-        else if(ch == 100 || ch == 97){
+        else if(ch == 100 || ch == 97){  //When cursor is at waveType, read A or D key to adjust waveType
             if (inputs.currentInput==0){
                 if(ch == 100){
                     inputs.waveType++;
@@ -146,7 +148,7 @@ void *keyboardthread(void *arg){
                 }
                 inputs.waveType = ((inputs.waveType - 1) % 4) + 1;
             }
-            else if (inputs.currentInput==1){
+            else if (inputs.currentInput==1){ //When cursor is at waveType, read A or D key to adjust frequency
                 if(ch == 100 && inputs.freq<200){
                     inputs.freq += 1;
                 } 
@@ -155,7 +157,7 @@ void *keyboardthread(void *arg){
                     inputs.freq -= 1;
                 }
             }
-            else if (inputs.currentInput==2){
+            else if (inputs.currentInput==2){//When cursor is at waveType, read A or D key to adjust amplitude
                 if(ch == 100 && inputs.amp<50.0){
                     inputs.amp += 0.01;
                 }
@@ -164,13 +166,13 @@ void *keyboardthread(void *arg){
                 }
             }
         }
-        else if(ch==13 && inputs.currentInput == 3){
+        else if(ch==13 && inputs.currentInput == 3){  //Enter key to generate wave if the cursor is at generate wave button
             inputs.currentInput = 0;    
             inputs.generateWave = 1;
         }
-        else if(ch==13 && inputs.currentInput == 4){
+        else if(ch==13 && inputs.currentInput == 4){ //Save and Exit when Enter is pressed if the cursor is at that button
             erase();
-            save_config("config.txt", &inputs);
+            save_config("config.txt", &inputs); //Call a function to save metronome setting to config.txt
             endwin();
             exit(0);
         }
@@ -179,7 +181,6 @@ void *keyboardthread(void *arg){
 }
 
 void *outputthread(void *arg) {
-    
     // Wave attributes
     unsigned int data[10000];
     unsigned int i, n;
@@ -198,11 +199,12 @@ void *outputthread(void *arg) {
         if(ThreadCtl(_NTO_TCTL_IO,0)==-1) {perror("Thread Control");exit(1);}			
     #endif	
 
+    //Intialize ncurses
     startNcurses();
 
     while(1) {
         erase();
-        // printing of wave type
+        // Print an arrow in the selected location
         if(inputs.currentInput==0){
             attron(A_STANDOUT);
             mvprintw(0,0,"> ");
@@ -248,6 +250,8 @@ void *outputthread(void *arg) {
             mvprintw(6,0,"> ");
             attroff(A_STANDOUT);
         }
+
+        //printing of wave type and highlight when selected
         if (inputs.currentInput == 0){attron(A_STANDOUT);}
         mvprintw(0, 2, "WAVE TYPE :  %s", "   ");
         switch(inputs.waveType) {
@@ -266,9 +270,11 @@ void *outputthread(void *arg) {
             case -1:
                 mvprintw(0, 2, "WAVE TYPE :  %s", "Invalid input for WAVETYPE! Re-enter!");
                 break;
+            default:
+                mvprintw(0, 2, "WAVE TYPE :  NOT SPECIFIED");
         }
         attroff(A_STANDOUT);
-        // printing of frequency
+        // printing of frequency and highlight when selected
         if (inputs.currentInput == 1){attron(A_STANDOUT);}
         move(1,12);
         clrtoeol();
@@ -281,7 +287,7 @@ void *outputthread(void *arg) {
         mvprintw(2, 2, "AMPLITUDE :  %.2lf V", inputs.amp);
         attroff(A_STANDOUT);
 
-        // printing button
+        // printing button and highlight when selected
         if (inputs.currentInput == 3){attron(A_STANDOUT);}
         if (inputs.generateWave == 0){
             move(4,12);
@@ -289,6 +295,7 @@ void *outputthread(void *arg) {
             mvprintw(4, 2, "Generate Wave");
             //mvprintw(5,0,"%d, %d\n",n, cnt);
         }
+        //Calibrate the input values into appropiate amplitude and frequency to generate an accurate wave
         else{
             a = (inputs.amp*20/26);
             if(inputs.waveType == 1){
@@ -324,7 +331,7 @@ void *outputthread(void *arg) {
         }
         attroff(A_STANDOUT);
 
-        if(inputs.currentInput == 4){attron(A_STANDOUT);}
+        if(inputs.currentInput == 4){attron(A_STANDOUT);} //Save and Exit Button and highlight when selected
         mvprintw(6, 2, "Save & Exit");
         attroff(A_STANDOUT);
 
@@ -347,15 +354,16 @@ void *outputthread(void *arg) {
 }
 
 void readswitch(input *paramsptr){
+/*A function to read toggle switch input and convert into the corresponding waveType
+Input : A struct to store the waveTYpe*/
     int switchval;
     #if defined (__QNX__)
         switchval = in8(DIO_PORTA); //read the toggle switch state
     #endif
-    // printf("reading = %d\n",switchval);
     switch (switchval) //convert the value into corresponding waveType and store in a struct
     {
-    case 240:
-    paramsptr->waveType=NULL;
+    case 240: //output nothing when no switches are on
+    paramsptr->waveType=0;
     break;
     case 241:
     paramsptr->waveType=1;
@@ -368,11 +376,13 @@ void readswitch(input *paramsptr){
     break;
     case 248:
     paramsptr->waveType=4;
-    default:
+    default: //do nothing if more than one toggle switches are one
     break;}
 }
 
 void readpot(input *paramsptr ){
+/* A function to read potentiometer value and convert into to wave amplitude
+Input : A struct to store the amplitude*/
     unsigned int count;
     unsigned short chan;
     int potentioval;
@@ -386,6 +396,5 @@ void readpot(input *paramsptr ){
         while(!(in16(MUXCHAN)&0x4000));
         potentioval = in16(AD_DATA); //read potentiometer value
     #endif
-    // printf("potentiometer value =%i\n",potentioval);
     paramsptr->amp=potentioval*2.5/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
 }

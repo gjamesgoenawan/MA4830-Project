@@ -5,7 +5,9 @@
 #include <unistd.h>
 #include "main.h"
 
+
 void startNcurses() {
+/*Function to initialize ncurses*/
     WINDOW* screen = initscr();
     start_color();
     nodelay(screen, 1);
@@ -26,6 +28,7 @@ void startNcurses() {
 
 ushort sinWaveNcurses(double amplitude, double period,
     short phase_shift, ushort color_index) {
+    /*Function to output colorful graphical sine wave to the command line ncurses window*/
 	double ratio, y;
     double x;
     for (x=0.0; x < (COLS+phase_shift) ; x += 1.0) {
