@@ -30,8 +30,8 @@
 
 typedef struct {
     char waveType[20];
-    int amplitude;
-    int frequency; 
+    float amplitude;
+    float frequency; 
 } params;
 
 int badr[5];		// PCI 2.2 assigns 6 IO base addresses
@@ -148,5 +148,5 @@ out16(AD_DATA,0);
 while(!(in16(MUXCHAN)&0x4000));
 potentioval = in16(AD_DATA); //read potentiometer value
 // printf("potentiometer value =%i\n",potentioval);
-paramsptr->amplitude=potentioval*2.3/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
+paramsptr->amplitude=atof(potentioval)*2.3/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
 }
