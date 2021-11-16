@@ -28,6 +28,12 @@
 
 #define	DEBUG		1
 
+typedef struct {
+    char waveType[20];
+    int amplitude;
+    int frequency; 
+} params;
+
 int badr[5];		// PCI 2.2 assigns 6 IO base addresses
 uintptr_t iobase[6]; 
 
@@ -36,10 +42,7 @@ void readpot();
 
 int main() {
 
-// unsigned int count;
-// uint16_t adc_in;
-// unsigned short chan;
-// int potentioval;
+params param;
 
 struct pci_dev_info info;
 void *hdl;
@@ -104,18 +107,34 @@ pci_detach_device(hdl);
 return(0);
 }  
 
-void readswitch(){
+void readswitch(params *paramsptr){
 int switchval;
 
-switchval = in8(DIO_PORTA);
-printf("reading = %d\n",switchval);
-
-//TODO SWITCH CASE to convert into waveType
-//Store in a structure
+switchval = in8(DIO_PORTA); //read the toggle switch state
+// printf("reading = %d\n",switchval);
+switch (switchval) //convert the value into corresponding waveType and store in a struct
+{
+case 240:
+  paramsptr->waveType=NULL;
+  break;
+case 241:
+  paramsptr->waveType="sine";
+  break;
+case 242:
+  paramsptr->waveType="square";
+  break;
+case 244:
+  paramsptr->waveType="sawtooth";
+  break;
+case 248:
+  paramsptr->waveType="triangular"
+default:
+  break;
+}
 
 }
 
-void readpot(){
+void readpot(params *paramsptr ){
 unsigned int count;
 uint16_t adc_in;
 unsigned short chan;
@@ -128,8 +147,6 @@ delay(1);
 out16(AD_DATA,0);
 while(!(in16(MUXCHAN)&0x4000));
 potentioval = in16(AD_DATA); //read potentiometer value
-printf("potentiometer value =%i\n",potentioval);
-
-//TODO SCALE and convert into amplitude value
-//To store in a struct
+// printf("potentiometer value =%i\n",potentioval);
+paramsptr->amplitude=potentioval*2.3/65535; //scale the potentiometer value into amplitude and store the amplitude value in a struct
 }
